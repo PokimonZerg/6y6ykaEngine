@@ -635,11 +635,10 @@ bbool bLisp_RegFunc(bLisp_Script *_script, bchar *_name, bvoid *_ptr, bchar *_ar
 		arg_str++;
 	}
 
-	//new_function->rt = _rt;
-
 	// пропускаем (*)(
 	arg_str += 4;
 
+	// собираем список аргументов
 	while(*arg_str != L')')
 	{
 		nl = malloc(sizeof(bLisp_TypeClassList));
@@ -664,27 +663,13 @@ bbool bLisp_RegFunc(bLisp_Script *_script, bchar *_name, bvoid *_ptr, bchar *_ar
 			arg_str++;
 	}
 
-	/*va_start(ap, _arg_num);
-	for(arg_list = 0, i = 0; i < _arg_num; i++)
-	{
-		new_arg_list = malloc(sizeof(bLisp_TypeClassList));
-
-		new_arg_list->type = va_arg(ap, int);
-		new_arg_list->next = arg_list;
-		arg_list = new_arg_list;
-	}
-	va_end(ap);*/
-
-	//get list size;
+	// узнаем размер списка аргументов
 	for(i = 0, nl = al; nl; nl = nl->next, i++);
-	//for(i = 0, new_arg_list = arg_list; new_arg_list; new_arg_list = new_arg_list->next, i++);
 
 	new_function->at_size = i;
 
 	for(nl = al; nl; nl = nl->next, i--)
-	{
 		new_function->at[i - 1] = nl->type;
-	}
 
 	while(al)
 	{
