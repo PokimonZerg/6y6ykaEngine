@@ -15,18 +15,6 @@
 /*============================================================================*/
 #include "b_pch.h"
 /*============================================================================*/
-enum bLisp_TypeClass
-{
-	bLisp_IntType,
-	bLisp_FloatType,
-	bLisp_StringType,
-	bLisp_LambdaType,
-	bLisp_NativeType,
-	bLisp_DataType,
-	bLisp_ListType,
-	bLisp_VoidType
-};
-/*============================================================================*/
 typedef struct bLisp_Script bLisp_Script;
 /*============================================================================*/
 bLisp_Script *bLisp_Open(bchar *_code, bchar **_error);
@@ -39,7 +27,6 @@ bbool bLisp_Close(bLisp_Script *_script);
 /*============================================================================*/
 bchar *bLisp_Run(bLisp_Script *_script);
 /*============================================================================*/
-bvoid bLisp_RegisterFunction(bLisp_Script *_script, enum bLisp_TypeClass _rt,
-	                         bchar *_name, bvoid *_ptr, buint _arg_num, ...);
+#define bLisp_RegisterFunction(_s, _p, _pt) bLisp_RegFunc(_s, L#_p, (_p == (_pt)_p, _p), L#_pt)
 /*============================================================================*/
 #endif /* _B_LISP_H_ */

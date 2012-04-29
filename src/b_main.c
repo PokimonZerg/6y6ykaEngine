@@ -30,8 +30,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	if(!s)
 		bError(e);
 
-	bLisp_RegisterFunction(s, bLisp_VoidType, L"bCore_GetMessages", bCore_GetMessages, 0);
-	bLisp_RegisterFunction(s, bLisp_IntType, L"bCore_Stop", bCore_Stop, 0);
+	bLisp_RegisterFunction(s, bCore_GetMessages, bvoid (*)());
+	bLisp_RegisterFunction(s, bCore_Stop, bint (*)());
 	
 	if(e = bLisp_Run(s))
 			MessageBox(0, e, L"runtime", MB_OK);

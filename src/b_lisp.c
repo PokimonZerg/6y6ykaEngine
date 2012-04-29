@@ -37,6 +37,19 @@ typedef struct bLisp_TypeClassList
 	struct bLisp_TypeClassList *next;
 } bLisp_TypeClassList;
 /*============================================================================*/
+typedef enum
+{
+	bLisp_IntType,
+	bLisp_FloatType,
+	bLisp_StringType,
+	bLisp_LambdaType,
+	bLisp_NativeType,
+	bLisp_DataType,
+	bLisp_ListType,
+	bLisp_VoidType,
+	bLisp_UnknownType
+} bLisp_TypeClass;
+/*============================================================================*/
 union bLisp_TypeValue
 {
 	int                    int_value     ;
@@ -50,7 +63,7 @@ union bLisp_TypeValue
 /*============================================================================*/
 typedef struct bLisp_Type
 {
-	enum  bLisp_TypeClass type ;
+	bLisp_TypeClass       type ;
 	union bLisp_TypeValue value;
 } bLisp_Type;
 /*============================================================================*/
@@ -432,6 +445,16 @@ bchar *bLisp_PrintToken(bLisp_Token *_token);
 /*============================================================================*/
 bchar *bLisp_PrintType(bLisp_Type *_type);
 /*============================================================================*/
+bbool bLisp_RegFunc(bLisp_Script *_script, bchar *_name, bvoid *_ptr, bchar *_arg);
+/*============================================================================*/
+bbool bLisp_RegFunc_IsSeparator(bchar _c);
+/*============================================================================*/
+bbool bLisp_RegFunc_StrCmp(bchar *_code, bchar *_str);
+/*============================================================================*/
+bLisp_TypeClass bLisp_RegFunc_GetToken(bchar *_code);
+/*============================================================================*/
+bchar *bLisp_RegFunc_SkipCode(bchar *_code);
+/*============================================================================*/
 bchar *bLisp_StrCpy(bchar *_text);
 /*============================================================================*/
 bbool bLisp_Error(bLisp_Token *_token, bchar *_text);
@@ -566,14 +589,16 @@ bchar *bLisp_Run(bLisp_Script *_script)
 	return 0;
 }
 /*============================================================================*/
-bvoid bLisp_RegisterFunction(bLisp_Script *_script, enum bLisp_TypeClass _rt,
-	                         bchar *_name, bvoid *_ptr, buint _arg_num, ...)
+/* bLisp_RegFunc                                                              */
+/*============================================================================*/
+bbool bLisp_RegFunc(bLisp_Script *_script, bchar *_name, bvoid *_ptr, bchar *_arg)
 {
-	bLisp_TypeClassList *arg_list, *new_arg_list;
+	bLisp_TypeClassList *al = 0, *nl;
+	bchar *arg_str, *arg_str_ptr;
 	buint i;
-	va_list ap;
     bLisp_NativeFunction *new_function = 0;
 
+	// находим в скрипте запрашиваемую функцию
 	for(i = 0; i < _script->nfunc_size; i++)
 	{
 		if(wcscmp(_script->native_func[i].name, _name) == 0)
@@ -584,12 +609,62 @@ bvoid bLisp_RegisterFunction(bLisp_Script *_script, enum bLisp_TypeClass _rt,
 	}
 
 	if(!new_function)
-		bError(L"Can't find function in script");
+		return bfalse;
 
 	new_function->ptr = _ptr;
-	new_function->rt = _rt;
 
-	va_start(ap, _arg_num);
+	// копируем строку выкидывая все пробелы
+	arg_str_ptr = arg_str = malloc(wcslen(_arg) * sizeof(bchar) + sizeof(bchar));
+	for(i = 0; *_arg; _arg++)
+	{
+		if(!iswspace(*_arg))
+		{
+			arg_str[i] = *_arg;
+			i++;
+		}
+	}
+	arg_str[i] = L'\0';
+
+	// возвращаемое значение
+	new_function->rt = bLisp_RegFunc_GetToken(arg_str);
+	arg_str = bLisp_RegFunc_SkipCode(arg_str);
+
+	if(*arg_str == L'*')
+	{
+		new_function->rt = bLisp_DataType;
+		arg_str++;
+	}
+
+	//new_function->rt = _rt;
+
+	// пропускаем (*)(
+	arg_str += 4;
+
+	while(*arg_str != L')')
+	{
+		nl = malloc(sizeof(bLisp_TypeClassList));
+	    nl->type = bLisp_RegFunc_GetToken(arg_str);
+
+		arg_str = bLisp_RegFunc_SkipCode(arg_str);
+
+		if(*arg_str == L'*')
+		{
+			if(nl->type != bLisp_StringType)
+				nl->type = bLisp_DataType;
+			arg_str++;
+		}
+		else
+			if(nl->type == bLisp_UnknownType)
+				return bfalse;
+
+		nl->next = al;
+		al = nl;
+
+		if(*arg_str == L',')
+			arg_str++;
+	}
+
+	/*va_start(ap, _arg_num);
 	for(arg_list = 0, i = 0; i < _arg_num; i++)
 	{
 		new_arg_list = malloc(sizeof(bLisp_TypeClassList));
@@ -598,24 +673,29 @@ bvoid bLisp_RegisterFunction(bLisp_Script *_script, enum bLisp_TypeClass _rt,
 		new_arg_list->next = arg_list;
 		arg_list = new_arg_list;
 	}
-	va_end(ap);
+	va_end(ap);*/
 
 	//get list size;
-	for(i = 0, new_arg_list = arg_list; new_arg_list; new_arg_list = new_arg_list->next, i++);
+	for(i = 0, nl = al; nl; nl = nl->next, i++);
+	//for(i = 0, new_arg_list = arg_list; new_arg_list; new_arg_list = new_arg_list->next, i++);
 
 	new_function->at_size = i;
 
-	for(new_arg_list = arg_list; new_arg_list; new_arg_list = new_arg_list->next, i--)
+	for(nl = al; nl; nl = nl->next, i--)
 	{
-		new_function->at[i - 1] = new_arg_list->type;
+		new_function->at[i - 1] = nl->type;
 	}
 
-	while(arg_list)
+	while(al)
 	{
-		new_arg_list = arg_list->next;
-		free(arg_list);
-		arg_list = new_arg_list;
+		nl = al->next;
+		free(al);
+		al = nl;
 	}
+
+	free(arg_str_ptr);
+
+	return btrue;
 }
 /*============================================================================*/
 /* bLisp_Close                                                                */
@@ -1969,7 +2049,7 @@ bLisp_TokenKey bLisp_IsName(bchar *_code)
 {
 	bLisp_TokenKey result;
 
-	if(iswalpha(*_code))
+	if(iswalpha(*_code) || *_code == L'_')
 		return bLisp_IsName(_code + 1);
 	if(bLisp_IsChuckNorris(*_code))
 	{
@@ -3155,6 +3235,8 @@ buint bLisp_FindLocalVariable(bLisp_SymbolTable *_st, bchar *_name)
 	return -1;
 }
 /*============================================================================*/
+/* bLisp_Compress                                                             */
+/*============================================================================*/
 bvoid bLisp_Compress(bLisp_Script *_script, bLisp_SymbolTable *_st)
 {
 	buint size;
@@ -3173,13 +3255,6 @@ bvoid bLisp_Compress(bLisp_Script *_script, bLisp_SymbolTable *_st)
 		_script->code[size - 1] = code->code;
 	_script->code_start = _script->code;
 
-	/*while(_st->code)
-	{
-		code = _st->code->next;
-		free(_st->code);
-		_st->code = code;
-	}*/
-
 	//compress variables
 	for(size = 0, var = _st->variable; var; var = var->next, size++);
 
@@ -3188,14 +3263,6 @@ bvoid bLisp_Compress(bLisp_Script *_script, bLisp_SymbolTable *_st)
 
 	for(var = _st->variable; var; var = var->next, size--)
 		_script->var[size - 1] = var->variable;
-
-	/*while(_st->variable)
-	{
-		var = _st->variable->next;
-		free(_st->variable->name);
-		free(_st->variable);
-		_st->variable = var;
-	}*/
 
 	//compress functions
 	for(size = 0, func = _st->function; func; func = func->next, size++);
@@ -3206,13 +3273,6 @@ bvoid bLisp_Compress(bLisp_Script *_script, bLisp_SymbolTable *_st)
 	for(func = _st->function; func; func = func->next, size--)
 		_script->func[size - 1] = func->function;
 
-	/*while(_st->function)
-	{
-		func = _st->function->next;
-		free(_st->function);
-		_st->function = func;
-	}*/
-
 	//compress native functions
 	for(size = 0, native_func = _st->native_function; native_func; native_func = native_func->next, size++);
 
@@ -3221,15 +3281,10 @@ bvoid bLisp_Compress(bLisp_Script *_script, bLisp_SymbolTable *_st)
 	for(native_func = _st->native_function; native_func; native_func = native_func->next, size--)
 		_script->native_func[size - 1] = native_func->native_function;
 
-	/*while(_st->function)
-	{
-		native_func = _st->native_function->next;
-		free(_st->native_function);
-		_st->native_function = native_func;
-	}*/
-
 	bLisp_CompressString(_script, _st);
 }
+/*============================================================================*/
+/* bLisp_CompressString                                                       */
 /*============================================================================*/
 bvoid bLisp_CompressString(bLisp_Script *_script, bLisp_SymbolTable *_st)
 {
@@ -3248,14 +3303,6 @@ bvoid bLisp_CompressString(bLisp_Script *_script, bLisp_SymbolTable *_st)
 		wcslen(string->string) * sizeof(bchar) + sizeof(bchar));
 		size -= wcslen(string->string) * sizeof(bchar) + sizeof(bchar);
 	}
-
-	/*while(_st->strings)
-	{
-		string = _st->strings->next;
-		free(_st->strings->string);
-		free(_st->strings);
-		_st->strings = string;
-	}*/
 }
 /*============================================================================*/
 /* bLisp_GetCodeSize                                                          */
@@ -3267,6 +3314,74 @@ buint bLisp_GetCodeSize(bLisp_CodeList *_code)
 	for(i = 0; _code; _code = _code->next, i++);
 
 	return i;
+}
+/*============================================================================*/
+/* bLisp_RegFunc_IsSeparator                                                       */
+/*============================================================================*/
+bbool bLisp_RegFunc_IsSeparator(bchar _c)
+{
+	if(_c == L'*' || _c == L'(' || 
+	   _c == L')' || _c == L',')
+	   return btrue;
+
+	return bfalse;
+}
+/*============================================================================*/
+/* bLisp_RegFunc_StrCmp                                                            */
+/*============================================================================*/
+bbool bLisp_RegFunc_StrCmp(bchar *_code, bchar *_str)
+{
+	while(*_str)
+	{
+		if(*_code++ != *_str++)
+			return 0;
+	}
+
+	if(bLisp_RegFunc_IsSeparator(*_code))
+	   return 1;
+
+	return 0;
+}
+/*============================================================================*/
+/* bLisp_RegFunc_GetToken                                                     */
+/*============================================================================*/
+enum bLisp_TypeClass bLisp_RegFunc_GetToken(bchar *_code)
+{
+	if(bLisp_RegFunc_StrCmp(_code, L"int")         || 
+	   bLisp_RegFunc_StrCmp(_code, L"bint")        ||
+	   bLisp_RegFunc_StrCmp(_code, L"unsignedint") ||
+	   bLisp_RegFunc_StrCmp(_code, L"buint"))
+		return bLisp_IntType;
+
+	if(bLisp_RegFunc_StrCmp(_code, L"double")      ||
+	   bLisp_RegFunc_StrCmp(_code, L"bdouble"))
+		return bLisp_FloatType;
+
+	if(bLisp_RegFunc_StrCmp(_code, L"bchar")       ||
+	   bLisp_RegFunc_StrCmp(_code, L"wchar_t")     ||
+	   bLisp_RegFunc_StrCmp(_code, L"char"))
+		return bLisp_StringType;
+
+	if(bLisp_RegFunc_StrCmp(_code, L"void")        ||
+	   bLisp_RegFunc_StrCmp(_code, L"bvoid"))
+		return bLisp_VoidType;
+
+	return bLisp_UnknownType;
+}
+/*============================================================================*/
+/* bLisp_RegFunc_SkipCode                                                     */
+/*============================================================================*/
+bchar *bLisp_RegFunc_SkipCode(bchar *_code)
+{
+	while(*_code)
+	{
+		if(bLisp_RegFunc_IsSeparator(*_code))
+			return _code;
+
+		_code++;
+	}
+
+	return _code;
 }
 /*============================================================================*/
 /* bLisp_StrCpy                                                               */
