@@ -445,8 +445,6 @@ bchar *bLisp_PrintToken(bLisp_Token *_token);
 /*============================================================================*/
 bchar *bLisp_PrintType(bLisp_Type *_type);
 /*============================================================================*/
-bbool bLisp_RegFunc(bLisp_Script *_script, bchar *_name, bvoid *_ptr, bchar *_arg);
-/*============================================================================*/
 bbool bLisp_RegFunc_IsSeparator(bchar _c);
 /*============================================================================*/
 bbool bLisp_RegFunc_StrCmp(bchar *_code, bchar *_str);
@@ -696,6 +694,8 @@ bbool bLisp_Close(bLisp_Script *_script)
 
 	return btrue;
 }
+/*============================================================================*/
+/* bLisp_PushArguments                                                        */
 /*============================================================================*/
 bint bLisp_PushArguments(bLisp_Script *_script)
 {
@@ -3022,7 +3022,6 @@ bbool bLisp_ParseExpression(bLisp_SymbolTable *_st, bLisp_Token *_token)
 
 		case bLisp_NameToken:
 			return bLisp_FindVariable(_st, _token);
-			break;
 
 		case bLisp_DigitToken:
 			new_code.value.const_value.type = bLisp_IntType;
@@ -3057,6 +3056,8 @@ bbool bLisp_ParseExpression(bLisp_SymbolTable *_st, bLisp_Token *_token)
 	return btrue;
 }
 /*============================================================================*/
+/* bLisp_AddCode                                                              */
+/*============================================================================*/
 bvoid bLisp_AddCode(bLisp_CodeList **_code_list, bLisp_Code *_code)
 {
 	bLisp_CodeList *new_code;
@@ -3067,6 +3068,8 @@ bvoid bLisp_AddCode(bLisp_CodeList **_code_list, bLisp_Code *_code)
 	new_code->next = *_code_list;
 	*_code_list = new_code;
 }
+/*============================================================================*/
+/* bLisp_AddVariable                                                          */
 /*============================================================================*/
 buint bLisp_AddVariable(bLisp_SymbolTable *_st, bchar *_name)
 {
@@ -3131,6 +3134,8 @@ bvoid bLisp_FreeLocalVariable(bLisp_LocalVarList **_lvl, buint _size)
 	}
 }
 /*============================================================================*/
+/* bLisp_AddFunction                                                          */
+/*============================================================================*/
 buint bLisp_AddFunction(bLisp_SymbolTable *_st, bLisp_Function *_f)
 {
 	bLisp_FunctionList *new_function;
@@ -3146,6 +3151,8 @@ buint bLisp_AddFunction(bLisp_SymbolTable *_st, bLisp_Function *_f)
 
 	return index;
 }
+/*============================================================================*/
+/* bLisp_AddNativeFunction                                                    */
 /*============================================================================*/
 buint bLisp_AddNativeFunction(bLisp_SymbolTable *_st)
 {
@@ -3301,7 +3308,7 @@ buint bLisp_GetCodeSize(bLisp_CodeList *_code)
 	return i;
 }
 /*============================================================================*/
-/* bLisp_RegFunc_IsSeparator                                                       */
+/* bLisp_RegFunc_IsSeparator                                                  */
 /*============================================================================*/
 bbool bLisp_RegFunc_IsSeparator(bchar _c)
 {
@@ -3335,7 +3342,8 @@ enum bLisp_TypeClass bLisp_RegFunc_GetToken(bchar *_code)
 	if(bLisp_RegFunc_StrCmp(_code, L"int")         || 
 	   bLisp_RegFunc_StrCmp(_code, L"bint")        ||
 	   bLisp_RegFunc_StrCmp(_code, L"unsignedint") ||
-	   bLisp_RegFunc_StrCmp(_code, L"buint"))
+	   bLisp_RegFunc_StrCmp(_code, L"buint")       ||
+	   bLisp_RegFunc_StrCmp(_code, L"bbool"))
 		return bLisp_IntType;
 
 	if(bLisp_RegFunc_StrCmp(_code, L"double")      ||

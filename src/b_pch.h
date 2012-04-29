@@ -15,6 +15,7 @@
 /*============================================================================*/
 #include "b_define.h"
 #include "b_type.h"
+#include "b_math.h"
 #include "b_error.h"
 #include "b_log.h"
 #include "b_stuff.h"

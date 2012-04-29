@@ -93,6 +93,7 @@
     <ClCompile Include="..\src\b_lisp.c" />
     <ClCompile Include="..\src\b_log.c" />
     <ClCompile Include="..\src\b_main.c" />
+    <ClCompile Include="..\src\b_render.c" />
     <ClCompile Include="..\src\b_stuff.c" />
   </ItemGroup>
   <ItemGroup>
@@ -102,7 +103,9 @@
     <ClInclude Include="..\src\b_file.h" />
     <ClInclude Include="..\src\b_lisp.h" />
     <ClInclude Include="..\src\b_log.h" />
+    <ClInclude Include="..\src\b_math.h" />
     <ClInclude Include="..\src\b_pch.h" />
+    <ClInclude Include="..\src\b_render.h" />
     <ClInclude Include="..\src\b_type.h" />
     <ClInclude Include="..\src\b_stuff.h" />
   </ItemGroup>

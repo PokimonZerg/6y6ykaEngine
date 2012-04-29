@@ -10,6 +10,7 @@
 /*             |_/                   |_/         |_|  \_\ /_/            \_\  */
 /*                                                                            */
 /*============================================================================*/
+#include "b_render.h"
 #include "b_core.h"
 /*============================================================================*/
 typedef struct
@@ -28,6 +29,8 @@ LRESULT WINAPI bCore_EventHandler(HWND, UINT, WPARAM, LPARAM);
 bvoid bCore_WindowShow(bCore_Window *_window);
 /*============================================================================*/
 bvoid bCore_InitGL(bCore_Window *_window);
+/*============================================================================*/
+bvoid bCore_GetMessages();
 
 /*============================================================================*/
 bCore_Window *bCore_MainWindow = 0;
@@ -47,6 +50,18 @@ bchar *bCore_Init()
 	bCore_WindowShow(bCore_MainWindow);
 
 	return 0;
+}
+/*============================================================================*/
+/* bCore_Run                                                                  */
+/*============================================================================*/
+bvoid bCore_Run()
+{
+	// для начала обработаем все сообщения
+	bCore_GetMessages();
+
+	SwapBuffers(bCore_MainWindow->hdc);
+
+	bRender_Clear();
 }
 /*============================================================================*/
 bCore_Window *bCore_CreateWindow()
@@ -84,12 +99,23 @@ bvoid bCore_WindowShow(bCore_Window *_window)
 /*============================================================================*/
 LRESULT WINAPI bCore_EventHandler(HWND _hwnd, UINT _message, WPARAM _wparam, LPARAM _lparam)
 {
-	if (_message == WM_DESTROY )
+	switch(_message)
 	{
+	case WM_DESTROY:
+	case WM_QUIT:
+	case WM_CLOSE:
 		bCore_DontStopMeNow = bfalse;
+		break;
+
+	case WM_SIZE:
+		bRender_ResizeScreen(LOWORD(_lparam), HIWORD(_lparam));
+		break;
+
+	default:
+		return DefWindowProc(_hwnd, _message, _wparam, _lparam);
 	}
 
-	return DefWindowProc(_hwnd, _message, _wparam, _lparam);
+	return 0;
 }
 /*============================================================================*/
 bvoid bCore_InitGL(bCore_Window *_window)
@@ -130,16 +156,6 @@ bvoid bCore_GetMessages()
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
-
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	glLoadIdentity();
-	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
-	glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	SwapBuffers(bCore_MainWindow->hdc);
 }
 /*============================================================================*/
 bbool bCore_Stop()

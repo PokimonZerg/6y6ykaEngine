@@ -29,4 +29,6 @@ bchar *bLisp_Run(bLisp_Script *_script);
 /*============================================================================*/
 #define bLisp_RegisterFunction(_s, _p, _pt) bLisp_RegFunc(_s, L#_p, (_p == (_pt)_p, _p), L#_pt)
 /*============================================================================*/
+bbool bLisp_RegFunc(bLisp_Script *_script, bchar *_name, bvoid *_ptr, bchar *_arg);
+/*============================================================================*/
 #endif /* _B_LISP_H_ */

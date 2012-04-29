@@ -11,12 +11,15 @@
 /*                                                                            */
 /*============================================================================*/
 #include "b_core.h"
+#include "b_render.h"
 #include "b_lisp.h"
 /*============================================================================*/
 double test(double x, double y)
 {
 	return x + y;
 }
+/*============================================================================*/
+/* main                                                                       */
 /*============================================================================*/
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
@@ -30,8 +33,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	if(!s)
 		bError(e);
 
-	bLisp_RegisterFunction(s, bCore_GetMessages, bvoid (*)());
-	bLisp_RegisterFunction(s, bCore_Stop, bint (*)());
+	bLisp_RegisterFunction(s, bCore_Run, bvoid (*)());
+	bLisp_RegisterFunction(s, bCore_Stop, bbool (*)());
+	bLisp_RegisterFunction(s, bRender_DrawCube, bvoid (*)());
 	
 	if(e = bLisp_Run(s))
 			MessageBox(0, e, L"runtime", MB_OK);
